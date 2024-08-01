@@ -117,6 +117,67 @@ void CL_PerformAimbot(void) {
     }
 }
 
+void CL_PerformAimbot(void) {
+    if (!aimbotEnabled) {
+        return;
+    }
+
+    Com_Printf("Performing aimbot logic\n");
+
+    extern playerState_t *cg_entities; // Player state information
+
+    typedef struct {
+        float x, y, z;
+    } Vec3;
+
+    int playerCount = MAX_CLIENTS; // Define player count based on MAX_CLIENTS
+
+    // Replace with actual player position retrieval from playerState_t
+    Vec3 playerPosition = {cg_entities->origin[0], cg_entities->origin[1], cg_entities->origin[2]};
+
+    float closestDistance = FLT_MAX;
+    int targetIndex = -1;
+
+    for (int i = 0; i < playerCount; ++i) {
+        // Check if entity is valid and on a different team
+        if (cg_entities[i].infoValid && cg_entities[i].team != cg_entities[cg->clientNum].team) {
+            float distance = sqrt(pow(cg_entities[i].origin[0] - playerPosition.x, 2) +
+                                  pow(cg_entities[i].origin[1] - playerPosition.y, 2) +
+                                  pow(cg_entities[i].origin[2] - playerPosition.z, 2));
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                targetIndex = i;
+            }
+        }
+    }
+
+    if (targetIndex != -1) {
+        // Calculate aim direction
+        Vec3 aimDirection = {
+            cg_entities[targetIndex].origin[0] - playerPosition.x,
+            cg_entities[targetIndex].origin[1] - playerPosition.y,
+            cg_entities[targetIndex].origin[2] - playerPosition.z
+        };
+
+        // Normalize aimDirection
+        float length = sqrt(aimDirection.x * aimDirection.x + aimDirection.y * aimDirection.y + aimDirection.z * aimDirection.z);
+        if (length > 0) {
+            aimDirection.x /= length;
+            aimDirection.y /= length;
+            aimDirection.z /= length;
+        }
+
+        // Set player's view angles
+        vec3_t viewAngles;
+        vectoangles(aimDirection, viewAngles);
+        for (int i = 0; i < 3; i++) {
+            cl.viewangles[i] = viewAngles[i];
+        }
+
+        Com_Printf("Aiming at target: %d\n", targetIndex);
+    }
+}
+
 cvar_t  *cl_avidemo;
 cvar_t  *cl_forceavidemo;
 
